@@ -1,0 +1,162 @@
+# -My_First_project
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Attendance Registration</title>
+  <style>
+    :root{ --bg:#f7fafc; --card:#ffffff; --muted:#64748b; --accent:#2563eb; --danger:#ef4444 }
+    body{ font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin:0; background:var(--bg); color:#0f172a; padding:20px; }
+    .wrap{ max-width:1000px; margin:18px auto; }
+    header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+    h1{ font-size:20px; margin:0; }
+    .card{ background:var(--card); padding:14px; border-radius:10px; box-shadow:0 6px 18px rgba(15,23,42,0.06); }
+    form{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; align-items:end; }
+    label{ font-size:13px; color:var(--muted); display:block; margin-bottom:6px; }
+    input[type="text"], input[type="date"], input[type="time"], select, textarea {
+      width:100%; padding:8px 10px; border-radius:8px; border:1px solid #e6eef8; font-size:14px;
+    }
+    textarea{ resize:vertical; min-height:40px; grid-column: span 4; }
+    .actions{ display:flex; gap:8px; align-items:center; }
+    button{ padding:8px 11px; border-radius:8px; border:0; cursor:pointer; background:var(--accent); color:white; }
+    .btn-ghost{ background:transparent; border:1px solid #cbd5e1; color: #0f172a; }
+    .controls{ margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .table-wrap{ margin-top:16px; overflow:auto; }
+    table{ width:100%; border-collapse:collapse; font-size:14px; min-width:800px; }
+    th, td{ padding:10px 8px; text-align:left; border-bottom:1px solid #eef2f7; }
+    th{ background:#f1f5f9; color:#0f172a; font-weight:600; position:sticky; top:0; }
+    .small{ font-size:13px; color:var(--muted); }
+    .right{ text-align:right; }
+    .danger{ background:var(--danger); color:white; }
+    .chip{ padding:6px 8px; border-radius:999px; background:#eef2ff; color:#1e293b; border:1px solid #dbeafe; cursor:pointer; }
+    @media (max-width:900px){
+      form{ grid-template-columns: repeat(2, 1fr); }
+      textarea{ grid-column: span 2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Attendance Registration</h1>
+      <div class="small">Records stored locally in your browser</div>
+    </header>
+
+    <div class="card" role="region" aria-label="Attendance form">
+      <form id="attForm">
+        <div>
+          <label for="name">Name</label>
+          <input id="name" type="text" placeholder="Full name" required />
+        </div>
+        <div>
+          <label for="studentId">Student ID</label>
+          <input id="studentId" type="text" placeholder="e.g., S12345" required />
+        </div>
+        <div>
+          <label for="className">Class / Section</label>
+          <input id="className" type="text" placeholder="e.g., 10A / Batch 2025" />
+        </div>
+        <div>
+          <label for="status">Status</label>
+          <select id="status">
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+            <option value="Late">Late</option>
+            <option value="Excused">Excused</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="date">Date</label>
+          <input id="date" type="date" required />
+        </div>
+        <div>
+          <label for="time">Time</label>
+          <input id="time" type="time" />
+        </div>
+        <div style="grid-column: span 2;">
+          <label for="notes">Notes (optional)</label>
+          <input id="notes" type="text" placeholder="e.g., arrived at 09:10" />
+        </div>
+
+        <div class="actions" style="grid-column: span 4;">
+          <button id="saveBtn" type="submit">Add / Save</button>
+          <button id="updateBtn" type="button" class="btn-ghost" style="display:none;">Update</button>
+          <button id="clearForm" type="button" class="btn-ghost">Clear Form</button>
+          <div style="margin-left:auto" class="small">Total records: <span id="count">0</span></div>
+        </div>
+      </form>
+
+      <div class="controls">
+        <input id="search" type="text" placeholder="Search by name or ID" style="padding:8px;border-radius:8px;border:1px solid #e6eef8" />
+        <input id="filterDate" type="date" />
+        <button id="exportCsv" class="btn-ghost">Export CSV</button>
+        <button id="loadSample" class="chip">Load Sample</button>
+        <button id="clearAll" class="chip" style="background:#fee2e2;border-color:#fecaca">Clear All</button>
+      </div>
+    </div>
+
+    <div class="table-wrap card" style="margin-top:12px;">
+      <table id="recordsTable" aria-label="Attendance records">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>ID</th>
+            <th>Class</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <!-- rows inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  // Keys & initial setup
+  const STORAGE_KEY = 'attendance_records_v1';
+
+  const els = {
+    form: document.getElementById('attForm'),
+    name: document.getElementById('name'),
+    studentId: document.getElementById('studentId'),
+    className: document.getElementById('className'),
+    status: document.getElementById('status'),
+    date: document.getElementById('date'),
+    time: document.getElementById('time'),
+    notes: document.getElementById('notes'),
+    saveBtn: document.getElementById('saveBtn'),
+    updateBtn: document.getElementById('updateBtn'),
+    clearForm: document.getElementById('clearForm'),
+    tbody: document.getElementById('tbody'),
+    count: document.getElementById('count'),
+    search: document.getElementById('search'),
+    filterDate: document.getElementById('filterDate'),
+    exportCsv: document.getElementById('exportCsv'),
+    clearAll: document.getElementById('clearAll'),
+    loadSample: document.getElementById('loadSample')
+  };
+
+  let records = [];         // array of attendance objects
+  let editIndex = -1;       // index being edited, -1 = new
+
+  // helpers
+  function todayISO() {
+    const d = new Date();
+    // local date in yyyy-mm-dd
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    const local = new Date(d - tzOffset);
+    return local.toISOString().slice(0,10);
+  }
+
+  function nowTime() {
+    const d = new Date();
+    return d.toTimeString().slice(0,5);
+  }
